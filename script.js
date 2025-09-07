@@ -18,6 +18,9 @@ let playerNames = {
   Player6: "Player 6",
 };
 
+// Store session title
+let sessionTitle = "";
+
 // Update individual player name
 function updatePlayerName(playerId) {
   const nameInput = document.getElementById(`${playerId}-name`);
@@ -34,7 +37,7 @@ function updatePlayerName(playerId) {
 // Add time to specific player
 function addTimeToPlayer(playerId) {
   const timeInput = document.getElementById(`${playerId}-time`);
-  const timeValue = timeInput.value.trim();
+  let timeValue = timeInput.value.trim();
 
   // Clear any previous error messages
   const existingError = timeInput.parentNode.querySelector(".player-error");
@@ -44,19 +47,25 @@ function addTimeToPlayer(playerId) {
 
   // Validation
   if (!timeValue) {
-    showErrorForPlayer(playerId, "Please enter a time.");
+    showError("Please enter a time.");
     return;
   }
+
+  // Auto-complete incomplete time entries
+  timeValue = autoCompleteTimeEntry(timeValue);
 
   if (!isValidTimeFormat(timeValue)) {
-    showErrorForPlayer(playerId, "Please enter time in valid format (M:SS or M:SS.xxx)");
+    showError("Please enter time in valid format (M:SS or M:SS.xxx)");
     return;
   }
 
+  // Format time to ensure 2-place millisecond precision
+  const formattedTime = formatTimeWithPrecision(timeValue);
+
   // Add time to player data
-  const timeMs = timeToMs(timeValue);
+  const timeMs = timeToMs(formattedTime);
   playerTimes[playerId].push({
-    time: timeValue,
+    time: formattedTime,
     timeMs: timeMs,
     timestamp: new Date(),
   });
@@ -70,62 +79,10 @@ function addTimeToPlayer(playerId) {
   timeInput.value = "";
 
   // Show success message
-  showSuccessForPlayer(playerId, `Added time ${timeValue}!`);
+  showSuccess(`Added time ${formattedTime} for ${playerNames[playerId]}!`);
 
   // Save data
   saveData();
-}
-
-// Show error message for specific player
-function showErrorForPlayer(playerId, message) {
-  const timeInput = document.getElementById(`${playerId}-time`);
-  const timeInputRow = timeInput.parentNode;
-
-  const errorDiv = document.createElement("div");
-  errorDiv.className = "error player-error";
-  errorDiv.textContent = message;
-  errorDiv.style.cssText = `
-    color: #ff6b6b;
-    font-size: 12px;
-    margin-top: 5px;
-    padding: 5px;
-    background: rgba(255, 107, 107, 0.1);
-    border-radius: 4px;
-    border-left: 3px solid #ff6b6b;
-    grid-column: 1 / -1;
-  `;
-
-  timeInputRow.appendChild(errorDiv);
-
-  setTimeout(() => {
-    errorDiv.remove();
-  }, 3000);
-}
-
-// Show success message for specific player
-function showSuccessForPlayer(playerId, message) {
-  const timeInput = document.getElementById(`${playerId}-time`);
-  const timeInputRow = timeInput.parentNode;
-
-  const successDiv = document.createElement("div");
-  successDiv.className = "success player-success";
-  successDiv.textContent = message;
-  successDiv.style.cssText = `
-    color: #e10600;
-    font-size: 12px;
-    margin-top: 5px;
-    padding: 5px;
-    background: rgba(225, 6, 0, 0.1);
-    border-radius: 4px;
-    border-left: 3px solid #e10600;
-    grid-column: 1 / -1;
-  `;
-
-  timeInputRow.appendChild(successDiv);
-
-  setTimeout(() => {
-    successDiv.remove();
-  }, 2000);
 }
 
 // Update player names
@@ -225,6 +182,78 @@ function isValidTimeFormat(timeStr) {
   return timeRegex.test(timeStr);
 }
 
+// Format time to ensure at least 2-place millisecond precision
+function formatTimeWithPrecision(timeStr) {
+  const parts = timeStr.split(":");
+  const minutes = parts[0];
+  const secondsPart = parts[1];
+
+  // Check if there's a decimal point
+  if (secondsPart.includes(".")) {
+    const [seconds, milliseconds] = secondsPart.split(".");
+    // Ensure seconds has 2 digits and milliseconds has at least 2 digits
+    const formattedSeconds = seconds.padStart(2, "0");
+    const formattedMs = milliseconds.padEnd(2, "0");
+    return `${minutes}:${formattedSeconds}.${formattedMs}`;
+  } else {
+    // No decimal point, pad seconds to 2 digits and add .00
+    const formattedSeconds = secondsPart.padStart(2, "0");
+    return `${minutes}:${formattedSeconds}.00`;
+  }
+}
+
+// Auto-complete incomplete time entries when submitting
+function autoCompleteTimeEntry(timeStr) {
+  // Remove any non-digits to count actual digits
+  const digits = timeStr.replace(/[^\d]/g, "");
+
+  if (digits.length === 0) return timeStr;
+
+  // If user just typed digits without colons/dots, format it properly
+  if (!/[:\.]/.test(timeStr)) {
+    // Pure digits - use our formatting logic
+    if (digits.length === 1) {
+      return digits + ":00.00"; // "1" becomes "1:00.00"
+    } else if (digits.length === 2) {
+      return digits[0] + ":" + digits[1] + "0.00"; // "12" becomes "1:20.00"
+    } else if (digits.length === 3) {
+      return digits[0] + ":" + digits.substring(1) + ".00"; // "123" becomes "1:23.00"
+    } else if (digits.length === 4) {
+      return digits[0] + ":" + digits.substring(1, 3) + "." + digits[3] + "0"; // "1234" becomes "1:23.40"
+    } else if (digits.length >= 5) {
+      return digits[0] + ":" + digits.substring(1, 3) + "." + digits.substring(3, 5); // "12345" becomes "1:23.45"
+    }
+  }
+
+  // Handle partial formatted entries
+  const parts = timeStr.split(":");
+  if (parts.length === 2) {
+    const minutes = parts[0];
+    const secondsPart = parts[1];
+
+    if (!secondsPart.includes(".")) {
+      // Just "1:23" - add milliseconds
+      if (secondsPart.length === 1) {
+        return minutes + ":" + secondsPart + "0.00"; // "1:2" becomes "1:20.00"
+      } else {
+        return minutes + ":" + secondsPart + ".00"; // "1:23" becomes "1:23.00"
+      }
+    } else {
+      // "1:23.4" - pad milliseconds if needed
+      const [seconds, ms] = secondsPart.split(".");
+      if (seconds.length === 1) {
+        const paddedSeconds = seconds + "0";
+        return minutes + ":" + paddedSeconds + "." + (ms || "00");
+      }
+      if (!ms || ms.length === 1) {
+        return minutes + ":" + seconds + "." + (ms || "0") + "0";
+      }
+    }
+  }
+
+  return timeStr; // Return as-is if already properly formatted
+}
+
 // Add time to player
 function addTime() {
   const playerSelect = document.getElementById("playerSelect");
@@ -254,10 +283,13 @@ function addTime() {
     return;
   }
 
+  // Format time to ensure 2-place millisecond precision
+  const formattedTime = formatTimeWithPrecision(timeValue);
+
   // Add time to player data
-  const timeMs = timeToMs(timeValue);
+  const timeMs = timeToMs(formattedTime);
   playerTimes[selectedPlayer].push({
-    time: timeValue,
+    time: formattedTime,
     timeMs: timeMs,
     timestamp: new Date(),
   });
@@ -272,41 +304,80 @@ function addTime() {
   playerSelect.value = "";
 
   // Show success message
-  showSuccess(`Added time ${timeValue} for ${playerNames[selectedPlayer]}!`);
+  showSuccess(`Added time ${formattedTime} for ${playerNames[selectedPlayer]}!`);
 }
 
 // Show error message
 function showError(message) {
-  const inputSection = document.querySelector(".input-section");
+  // Remove any existing error messages
+  const existingError = document.querySelector(".error-message");
+  if (existingError) {
+    existingError.remove();
+  }
+
   const errorDiv = document.createElement("div");
-  errorDiv.className = "error";
+  errorDiv.className = "error-message";
   errorDiv.textContent = message;
-  errorDiv.style.display = "block";
-  inputSection.appendChild(errorDiv);
+  errorDiv.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #dc3545;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+  `;
+
+  document.body.appendChild(errorDiv);
 
   setTimeout(() => {
-    errorDiv.remove();
-  }, 5000);
+    errorDiv.style.animation = "slideOut 0.3s ease";
+    setTimeout(() => {
+      if (errorDiv.parentNode) {
+        errorDiv.remove();
+      }
+    }, 300);
+  }, 4000);
 }
 
 // Show success message
 function showSuccess(message) {
-  const inputSection = document.querySelector(".input-section");
+  // Remove any existing success messages
+  const existingSuccess = document.querySelector(".success-message");
+  if (existingSuccess) {
+    existingSuccess.remove();
+  }
+
   const successDiv = document.createElement("div");
-  successDiv.style.cssText = `
-        color: #e10600;
-        font-size: 14px;
-        margin-top: 10px;
-        padding: 10px;
-        background: rgba(225, 6, 0, 0.1);
-        border-radius: 4px;
-        border-left: 4px solid #e10600;
-    `;
+  successDiv.className = "success-message";
   successDiv.textContent = message;
-  inputSection.appendChild(successDiv);
+  successDiv.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #28a745;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+  `;
+
+  document.body.appendChild(successDiv);
 
   setTimeout(() => {
-    successDiv.remove();
+    successDiv.style.animation = "slideOut 0.3s ease";
+    setTimeout(() => {
+      if (successDiv.parentNode) {
+        successDiv.remove();
+      }
+    }, 300);
   }, 3000);
 }
 
@@ -345,10 +416,12 @@ function updatePlayerTable(player) {
 // Delete a time
 function deleteTime(player, index) {
   if (confirm("Are you sure you want to delete this time?")) {
+    const deletedTime = playerTimes[player][index].time;
     playerTimes[player].splice(index, 1);
     updatePlayerTable(player);
     updateBestTimes();
     updateCrowns();
+    showSuccess(`Deleted time ${deletedTime} for ${playerNames[player]}!`);
   }
 }
 
@@ -406,17 +479,11 @@ function updateCrowns() {
   }
 }
 
-// Allow Enter key to submit
-document.getElementById("timeInput").addEventListener("keypress", function (e) {
-  if (e.key === "Enter") {
-    addTime();
-  }
-});
-
 // Load data from localStorage on page load
 window.addEventListener("load", function () {
   const savedData = localStorage.getItem("racingTimesData");
   const savedNames = localStorage.getItem("playerNames");
+  const savedTitle = localStorage.getItem("sessionTitle");
 
   if (savedData) {
     try {
@@ -449,6 +516,14 @@ window.addEventListener("load", function () {
     }
   }
 
+  if (savedTitle) {
+    sessionTitle = savedTitle;
+    const titleInput = document.getElementById("session-title");
+    if (titleInput) {
+      titleInput.value = sessionTitle;
+    }
+  }
+
   // Add Enter key support for time inputs
   for (let i = 1; i <= 6; i++) {
     const timeInput = document.getElementById(`Player${i}-time`);
@@ -466,6 +541,7 @@ window.addEventListener("load", function () {
 function saveData() {
   localStorage.setItem("racingTimesData", JSON.stringify(playerTimes));
   localStorage.setItem("playerNames", JSON.stringify(playerNames));
+  localStorage.setItem("sessionTitle", sessionTitle);
 }
 
 // Override the addTime function to include data saving
@@ -548,15 +624,117 @@ function clearAllData() {
   }
 }
 
-// Add clear button to the page
+// Initialize for time inputs on page load
 window.addEventListener("load", function () {
-  const inputSection = document.querySelector(".input-section");
-  const clearButton = document.createElement("button");
-  clearButton.textContent = "Clear All Data";
-  clearButton.style.marginLeft = "10px";
-  clearButton.style.background = "#ff6b6b";
-  clearButton.onclick = clearAllData;
-
-  const addButton = inputSection.querySelector("button");
-  addButton.parentNode.insertBefore(clearButton, addButton.nextSibling);
+  console.log("Page loaded - additional initialization"); // Debug log
 });
+
+// Session title management
+function saveSessionTitle() {
+  const titleInput = document.getElementById("session-title");
+  sessionTitle = titleInput.value.trim();
+  saveData();
+}
+
+// Export session data
+function exportSession() {
+  const sessionData = {
+    sessionTitle: sessionTitle || "Untitled Session",
+    exportDate: new Date().toISOString(),
+    playerNames: playerNames,
+    playerTimes: playerTimes,
+    version: "1.0",
+  };
+
+  const dataStr = JSON.stringify(sessionData, null, 2);
+  const dataBlob = new Blob([dataStr], { type: "application/json" });
+
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(dataBlob);
+
+  // Create filename with session title and date
+  const date = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
+  const titlePart = sessionTitle ? sessionTitle.replace(/[^a-z0-9]/gi, "_").toLowerCase() : "session";
+  link.download = `${titlePart}_${date}.json`;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  showSuccess("Session exported successfully!");
+}
+
+// Import session data
+function importSession() {
+  const fileInput = document.getElementById("import-file");
+  fileInput.click();
+}
+
+// Handle file import
+function handleFileImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (file.type !== "application/json") {
+    showError("Please select a valid JSON file.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      const importedData = JSON.parse(e.target.result);
+
+      // Validate the imported data structure
+      if (!importedData.playerNames || !importedData.playerTimes) {
+        showError("Invalid session file format.");
+        return;
+      }
+
+      // Confirm import with user
+      const confirmMessage = `Import session "${importedData.sessionTitle || "Untitled Session"}"?\n\nThis will replace all current data including:\n- Player names\n- All times\n- Session title\n\nThis cannot be undone.`;
+
+      if (confirm(confirmMessage)) {
+        // Import the data
+        sessionTitle = importedData.sessionTitle || "";
+        playerNames = importedData.playerNames || playerNames;
+        playerTimes = importedData.playerTimes || playerTimes;
+
+        // Update the UI
+        const titleInput = document.getElementById("session-title");
+        if (titleInput) {
+          titleInput.value = sessionTitle;
+        }
+
+        // Update name inputs
+        Object.keys(playerNames).forEach((playerId) => {
+          const nameInput = document.getElementById(`${playerId}-name`);
+          if (nameInput) {
+            nameInput.value = playerNames[playerId];
+          }
+        });
+
+        // Update all tables
+        Object.keys(playerTimes).forEach((player) => {
+          updatePlayerTable(player);
+        });
+
+        updateBestTimes();
+        updateCrowns();
+
+        // Save the imported data
+        saveData();
+
+        showSuccess(`Session "${sessionTitle || "Untitled Session"}" imported successfully!`);
+      }
+    } catch (error) {
+      console.error("Import error:", error);
+      showError("Failed to import session. Please check the file format.");
+    }
+
+    // Clear the file input
+    event.target.value = "";
+  };
+
+  reader.readAsText(file);
+}
