@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Time Trials</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="results-section">
+        <div class="header-controls">
+          <h2>Results</h2>
+          <div class="clear-buttons">
+            <button onclick="clearAllTimes()" class="clear-btn">Clear All Times</button>
+            <button onclick="resetPlayerNames()" class="clear-btn">Reset Names</button>
+          </div>
+        </div>
+        <div class="tables-container">
+          <div class="player-table" id="Player1-table">
+            <div class="player-header">
+              <input type="text" id="Player1-name" class="player-name-input" placeholder="Player 1" maxlength="20" onchange="updatePlayerName('Player1')" />
+              <span class="crown-container" id="Player1-crown"></span>
+            </div>
+            <div class="best-time" id="Player1-best">Best: --</div>
+            <div class="time-input-row">
+              <input type="text" id="Player1-time" class="time-input" placeholder="1:23.03" pattern="[0-9]+:[0-5]?[0-9](\.[0-9]+)?" />
+              <button onclick="addTimeToPlayer('Player1')" class="add-time-btn">Add</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Attempt</th>
+                  <th>Time</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="Player1-times"></tbody>
+            </table>
+          </div>
+
+          <div class="player-table" id="Player2-table">
+            <div class="player-header">
+              <input type="text" id="Player2-name" class="player-name-input" placeholder="Player 2" maxlength="20" onchange="updatePlayerName('Player2')" />
+              <span class="crown-container" id="Player2-crown"></span>
+            </div>
+            <div class="best-time" id="Player2-best">Best: --</div>
+            <div class="time-input-row">
+              <input type="text" id="Player2-time" class="time-input" placeholder="1:23.03" pattern="[0-9]+:[0-5]?[0-9](\.[0-9]+)?" />
+              <button onclick="addTimeToPlayer('Player2')" class="add-time-btn">Add</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Attempt</th>
+                  <th>Time</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="Player2-times"></tbody>
+            </table>
+          </div>
+
+          <div class="player-table" id="Player3-table">
+            <div class="player-header">
+              <input type="text" id="Player3-name" class="player-name-input" placeholder="Player 3" maxlength="20" onchange="updatePlayerName('Player3')" />
+              <span class="crown-container" id="Player3-crown"></span>
+            </div>
+            <div class="best-time" id="Player3-best">Best: --</div>
+            <div class="time-input-row">
+              <input type="text" id="Player3-time" class="time-input" placeholder="1:23.03" pattern="[0-9]+:[0-5]?[0-9](\.[0-9]+)?" />
+              <button onclick="addTimeToPlayer('Player3')" class="add-time-btn">Add</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Attempt</th>
+                  <th>Time</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="Player3-times"></tbody>
+            </table>
+          </div>
+
+          <div class="player-table" id="Player4-table">
+            <div class="player-header">
+              <input type="text" id="Player4-name" class="player-name-input" placeholder="Player 4" maxlength="20" onchange="updatePlayerName('Player4')" />
+              <span class="crown-container" id="Player4-crown"></span>
+            </div>
+            <div class="best-time" id="Player4-best">Best: --</div>
+            <div class="time-input-row">
+              <input type="text" id="Player4-time" class="time-input" placeholder="1:23.03" pattern="[0-9]+:[0-5]?[0-9](\.[0-9]+)?" />
+              <button onclick="addTimeToPlayer('Player4')" class="add-time-btn">Add</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Attempt</th>
+                  <th>Time</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="Player4-times"></tbody>
+            </table>
+          </div>
+
+          <div class="player-table" id="Player5-table">
+            <div class="player-header">
+              <input type="text" id="Player5-name" class="player-name-input" placeholder="Player 5" maxlength="20" onchange="updatePlayerName('Player5')" />
+              <span class="crown-container" id="Player5-crown"></span>
+            </div>
+            <div class="best-time" id="Player5-best">Best: --</div>
+            <div class="time-input-row">
+              <input type="text" id="Player5-time" class="time-input" placeholder="1:23.03" pattern="[0-9]+:[0-5]?[0-9](\.[0-9]+)?" />
+              <button onclick="addTimeToPlayer('Player5')" class="add-time-btn">Add</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Attempt</th>
+                  <th>Time</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="Player5-times"></tbody>
+            </table>
+          </div>
+
+          <div class="player-table" id="Player6-table">
+            <div class="player-header">
+              <input type="text" id="Player6-name" class="player-name-input" placeholder="Player 6" maxlength="20" onchange="updatePlayerName('Player6')" />
+              <span class="crown-container" id="Player6-crown"></span>
+            </div>
+            <div class="best-time" id="Player6-best">Best: --</div>
+            <div class="time-input-row">
+              <input type="text" id="Player6-time" class="time-input" placeholder="1:23.03" pattern="[0-9]+:[0-5]?[0-9](\.[0-9]+)?" />
+              <button onclick="addTimeToPlayer('Player6')" class="add-time-btn">Add</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Attempt</th>
+                  <th>Time</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="Player6-times"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
